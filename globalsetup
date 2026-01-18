@@ -1,0 +1,29 @@
+// services/blockchain.js
+export const verifyProduct = async (batchId) => {
+  // Mock API call
+  const response = await fetch(`/api/v1/trace/${batchId}`, {
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+  });
+  return response.json();
+};
+
+// App.js Integration
+function App() {
+  const [view, setView] = useState('consumer'); // 'consumer', 'producer', 'scanner'
+
+  return (
+    <div className="bg-slate-50 min-h-screen">
+      <nav className="p-4 bg-white flex gap-4 justify-center shadow-sm">
+        <button onClick={() => setView('consumer')} className="px-4 py-2 rounded-lg font-bold hover:bg-emerald-50 text-emerald-600">Consumer UI</button>
+        <button onClick={() => setView('producer')} className="px-4 py-2 rounded-lg font-bold hover:bg-emerald-50 text-emerald-600">Producer Admin</button>
+        <button onClick={() => setView('scanner')} className="px-4 py-2 rounded-lg font-bold bg-emerald-600 text-white">Open AR Scanner</button>
+      </nav>
+
+      <div className="p-4">
+        {view === 'consumer' && <TraceabilityDashboard />}
+        {view === 'producer' && <ProducerAdmin />}
+        {view === 'scanner' && <ARScanner onClose={() => setView('consumer')} />}
+      </div>
+    </div>
+  );
+}

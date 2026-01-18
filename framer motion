@@ -1,0 +1,19 @@
+// Simplified Story Logic
+const StoryMode = ({ isOpen, onClose }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+      >
+        <div className="w-full max-w-md h-[80vh] bg-farm-photo bg-cover rounded-3xl relative">
+          <div className="absolute bottom-0 p-8 bg-gradient-to-t from-black text-white w-full rounded-b-3xl">
+            <h4 className="text-2xl font-bold">Meet Farmer John</h4>
+            <p className="text-sm opacity-80">"We've been using regenerative techniques since 1998..."</p>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
