@@ -1,5 +1,6 @@
-import { render } from 'preact'
-import './index.css'
-import  App  from './app.jsx'
+import { render } from 'preact';
 
-render(<App />, document.getElementById('app'))
+render(
+  <h1 style={{ padding: '40px' }}>Frontend Loaded ✅</h1>,
+  document.getElementById('app')
+
