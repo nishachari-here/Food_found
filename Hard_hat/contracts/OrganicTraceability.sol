@@ -2,60 +2,104 @@
 pragma solidity ^0.8.20;
 
 contract OrganicTraceability {
-    // Enum to manage the lifecycle of the product
     enum Status { Harvested, Certified, Processed, InTransit, Delivered }
+
+    struct Stage {
+        Status status;
+        string location;
+        uint256 timestamp;
+        address processedBy;
+    }
+
+    struct Metrics {
+        uint256 waterUsage;   // in liters
+        uint256 carbonFootprint; 
+        uint256 soilHealth;    // percentage 0-100
+    }
 
     struct Product {
         uint256 id;
         string name;
         address currentOwner;
-        Status status;
         bool isOrganic;
-        uint256 timestamp;
-        string metadataURI; // Link to IPFS or detailed producer data
+        string metadataURI;
+        Metrics metrics;
+        Stage[] journey; // Stores the full history on-chain
     }
 
-    // Database of products: ProductID => Product Details
-    mapping(uint256 => Product) public products;
+    mapping(uint256 => Product) private products;
     uint256 public productCount;
 
-    // Events for the Backend/Frontend to track
     event ProductCreated(uint256 id, string name, address producer);
-    event StatusUpdated(uint256 id, Status status, address updatedBy);
+    event StatusUpdated(uint256 id, Status status, string location, address updatedBy);
 
-    // Modifier to ensure only the current owner can update status
     modifier onlyOwner(uint256 _id) {
         require(products[_id].currentOwner == msg.sender, "Not the current owner");
         _;
     }
 
-    // 1. Producer registers the organic product
-    function registerProduct(string memory _name, string memory _metadataURI) public {
+    // 1. Register product with initial metrics
+    function registerProduct(
+        string memory _name, 
+        string memory _metadataURI,
+        string memory _initialLocation,
+        uint256 _water,
+        uint256 _carbon,
+        uint256 _soil
+    ) public {
         productCount++;
-        products[productCount] = Product({
-            id: productCount,
-            name: _name,
-            currentOwner: msg.sender,
+        
+        Product storage newProduct = products[productCount];
+        newProduct.id = productCount;
+        newProduct.name = _name;
+        newProduct.currentOwner = msg.sender;
+        newProduct.isOrganic = true;
+        newProduct.metadataURI = _metadataURI;
+        newProduct.metrics = Metrics(_water, _carbon, _soil);
+
+        // Record the first stage in the journey
+        newProduct.journey.push(Stage({
             status: Status.Harvested,
-            isOrganic: true, // Logic could be added here for a "Certification" check
+            location: _initialLocation,
             timestamp: block.timestamp,
-            metadataURI: _metadataURI
-        });
+            processedBy: msg.sender
+        }));
 
         emit ProductCreated(productCount, _name, msg.sender);
     }
 
-    // 2. Update status as it moves through the chain
-    function updateStatus(uint256 _id, Status _newStatus) public onlyOwner(_id) {
-        products[_id].status = _newStatus;
-        products[_id].timestamp = block.timestamp;
+    // 2. Update status and append to the journey array
+    function updateStatus(
+        uint256 _id, 
+        Status _newStatus, 
+        string memory _location
+    ) public onlyOwner(_id) {
+        products[_id].journey.push(Stage({
+            status: _newStatus,
+            location: _location,
+            timestamp: block.timestamp,
+            processedBy: msg.sender
+        }));
 
-        emit StatusUpdated(_id, _newStatus, msg.sender);
+        emit StatusUpdated(_id, _newStatus, _location, msg.sender);
     }
 
-    // 3. View function for Consumers (via QR Code)
-    function getProductDetails(uint256 _id) public view returns (Product memory) {
+    // 3. View the full journey for a product
+    function getProductJourney(uint256 _id) public view returns (Stage[] memory) {
         require(_id > 0 && _id <= productCount, "Product does not exist");
-        return products[_id];
+        return products[_id].journey;
+    }
+
+    // 4. View general product details
+    function getProductDetails(uint256 _id) public view returns (
+        string memory name,
+        address currentOwner,
+        bool isOrganic,
+        Metrics memory metrics,
+        string memory metadataURI
+    ) {
+        require(_id > 0 && _id <= productCount, "Product does not exist");
+        Product storage p = products[_id];
+        return (p.name, p.currentOwner, p.isOrganic, p.metrics, p.metadataURI);
     }
 }
